@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flight quote formatter</title>
+<style>
+  :root {
+    --navy: #1B2A4A;
+    --navy-light: #2C3E63;
+    --cream: #F7F5F0;
+    --slate: #5C6B7A;
+    --slate-light: #8A97A3;
+    --amber: #C89B3C;
+    --amber-light: #F4E6C8;
+    --border: #DDD8CC;
+    --danger: #B3432E;
+    --success: #2F6F4E;
+    --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 60px;
+    background: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    color: var(--navy);
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .subtitle { font-size: 14px; color: var(--slate); margin: 0 0 28px; }
+  label { display: block; font-size: 13px; color: var(--slate); margin-bottom: 6px; font-weight: 500; }
+  textarea, select, input[type="text"], input[type="number"] {
+    width: 100%;
+    font-family: "SF Mono", "IBM Plex Mono", Consolas, monospace;
+    font-size: 13px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--navy);
+  }
+  select, input[type="text"] { font-family: inherit; }
+  textarea:focus, select:focus, input:focus {
+    outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-light);
+  }
+  .field { margin-bottom: 16px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; align-items: end; }
+  button {
+    background: var(--navy); color: var(--white); border: none; border-radius: 6px;
+    padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  button:hover { background: var(--navy-light); }
+  button:disabled { background: var(--slate-light); cursor: not-allowed; }
+  #generate-btn { width: 100%; }
+  #status {
+    font-size: 13px; margin: 12px 0; display: none; white-space: pre-wrap;
+    padding: 10px 12px; border-radius: 6px;
+  }
+  #status.info { display: block; color: var(--slate); background: var(--white); }
+  #status.error { display: block; color: var(--danger); background: #FBEAE6; }
+  #status.success { display: block; color: var(--success); background: #EAF3EC; }
+
+  #output-wrap { display: none; margin-top: 28px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .section-header label { margin: 0; }
+  #copy-btn {
+    width: auto; background: transparent; color: var(--navy); border: 1px solid var(--border);
+    padding: 8px 16px; font-size: 13px; font-weight: 600;
+  }
+  #copy-btn:hover { background: var(--amber-light); border-color: var(--amber); }
+
+  #fare-workspace { display: none; margin-top: 24px; }
+  #fare-workspace table { border-collapse: collapse; width: 100%; font-size: 13px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  #fare-workspace th, #fare-workspace td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  #fare-workspace th { background: var(--navy); color: var(--white); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  #fare-workspace tr:last-child td { border-bottom: none; }
+  .fare-input {
+    width: 110px; font-family: "SF Mono", "IBM Plex Mono", Consolas, monospace; font-size: 13px;
+    padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--white);
+  }
+  .fare-input:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-light); }
+  .final-fare { font-weight: 700; color: var(--navy); white-space: nowrap; }
+  .workspace-note { font-size: 12px; color: var(--slate-light); margin: 8px 0 0; }
+  .workspace-total { text-align: right; padding: 12px 4px; font-size: 14px; font-weight: 700; color: var(--navy); }
+  #build-email-btn { width: 100%; margin-top: 16px; }
+
+  #email-preview {
+    background: var(--white); border: 1px solid var(--border); border-radius: 8px;
+    padding: 20px 22px; font-size: 14px; line-height: 1.6; color: var(--navy); outline: none;
+  }
+  #email-preview p { margin: 0 0 12px; }
+  #email-preview table { border-collapse: collapse; width: 100%; margin: 12px 0 16px; font-size: 12.5px; }
+  #email-preview th, #email-preview td { border: 1px solid #C9C2B0; padding: 8px 10px; text-align: left; }
+  #email-preview th { background: var(--navy); color: var(--white); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+  #email-preview tr:nth-child(even) td { background: #FAF8F3; }
+  #email-preview .grand-total td { font-weight: 700; background: var(--amber-light) !important; }
+  .edit-hint { font-size: 12px; color: var(--slate-light); margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Flight quote formatter</h1>
+  <p class="subtitle">Paste a raw quote from a supplier page. Get a polished, tabular quote ready to email an agent or your team.</p>
+
+  <div class="field">
+    <label for="raw-input">Paste the raw supplier quote (one or more flights)</label>
+    <textarea id="raw-input" rows="8" placeholder="Paste flight rows, fares, dates etc. from the supplier page here..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="recipient-type">Send to</label>
+    <select id="recipient-type">
+      <option value="agent">Travel agent</option>
+      <option value="internal">Internal team</option>
+    </select>
+  </div>
+
+  <div class="row2">
+    <div>
+      <label for="markup-value">Add markup (%)</label>
+      <input id="markup-value" type="number" min="0" step="0.1" placeholder="e.g. 8" value="0" />
+    </div>
+    <div>
+      <button id="generate-btn" style="margin-top: 20px;">Extract flights</button>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="fare-workspace">
+    <label>Net fares — edit any amount, markup is added on top automatically. This table is for you only, it never gets sent.</label>
+    <table>
+      <thead>
+        <tr><th>Route</th><th>Date</th><th>Flight</th><th>Net fare</th><th>Fare to quote (with markup)</th></tr>
+      </thead>
+      <tbody id="fare-rows"></tbody>
+    </table>
+    <p class="workspace-total" id="workspace-grand-total"></p>
+    <p class="workspace-note">The markup is never shown to the recipient — the email below only ever shows the final fare.</p>
+    <button id="build-email-btn">Build email with these fares</button>
+  </div>
+
+  <div id="output-wrap">
+    <div class="section-header">
+      <label>Email preview — edit anything, then copy</label>
+      <button id="copy-btn">Copy for email</button>
+    </div>
+    <div id="email-preview" contenteditable="true"></div>
+    <p class="edit-hint">Copy pastes as a formatted table directly into Gmail or Outlook. Only the final fare is shown to the recipient — go back to the fares table above to change amounts.</p>
+  </div>
+</div>
+
+<script>
+const genBtn = document.getElementById('generate-btn');
+const buildEmailBtn = document.getElementById('build-email-btn');
+const statusEl = document.getElementById('status');
+const outputWrap = document.getElementById('output-wrap');
+const fareWorkspace = document.getElementById('fare-workspace');
+const fareRowsBody = document.getElementById('fare-rows');
+const workspaceGrandTotal = document.getElementById('workspace-grand-total');
+const copyBtn = document.getElementById('copy-btn');
+const emailPreview = document.getElementById('email-preview');
+
+let lastParsed = null;
+
+function setStatus(msg, type) {
+  statusEl.textContent = msg;
+  statusEl.className = type || '';
+  if (!msg) statusEl.className = '';
+}
+
+function extractJson(text) {
+  let t = text.trim();
+  t = t.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+  const start = t.indexOf('{');
+  const end = t.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('No JSON object found in the model response.');
+  return JSON.parse(t.slice(start, end + 1));
+}
+
+function fmtPax(val) {
+  if (val === null || val === undefined || val === '') return '—';
+  const match = String(val).match(/\d+/);
+  if (!match) return String(val);
+  return match[0] + ' Pax';
+}
+
+function fmtMoney(amount, currency) {
+  const num = Number(amount);
+  if (isNaN(num)) return String(amount);
+  const symbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', AED: 'AED ' };
+  const symbol = symbols[currency] || (currency ? currency + ' ' : '');
+  return symbol + num.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
+function applyMarkup(fare) {
+  const val = Number(document.getElementById('markup-value').value) || 0;
+  return fare * (1 + val / 100);
+}
+
+function renderFareWorkspace() {
+  if (!lastParsed) return;
+  const currency = (lastParsed.flights[0] && lastParsed.flights[0].currency) || 'INR';
+  fareRowsBody.innerHTML = '';
+  let grandTotal = 0;
+
+  lastParsed.flights.forEach((f, i) => {
+    const baseFare = Number(f.editedFare !== undefined ? f.editedFare : f.fare) || 0;
+    const final = applyMarkup(baseFare);
+    grandTotal += final;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + (f.route || '—') + '</td>' +
+      '<td>' + (f.date || '—') + '</td>' +
+      '<td>' + [f.airline, f.flightNumber].filter(Boolean).join(' ') + '</td>' +
+      '<td><input type="number" class="fare-input" step="0.01" data-index="' + i + '" value="' + baseFare + '" /></td>' +
+      '<td class="final-fare">' + fmtMoney(final, f.currency || currency) + '</td>';
+    fareRowsBody.appendChild(tr);
+  });
+
+  workspaceGrandTotal.textContent = 'Grand total (with markup): ' + fmtMoney(grandTotal, currency);
+
+  fareRowsBody.querySelectorAll('.fare-input').forEach(input => {
+    input.addEventListener('input', (e) => {
+      const idx = Number(e.target.dataset.index);
+      const f = lastParsed.flights[idx];
+      f.editedFare = Number(e.target.value) || 0;
+      updateFareTotals();
+    });
+  });
+}
+
+function updateFareTotals() {
+  const currency = (lastParsed.flights[0] && lastParsed.flights[0].currency) || 'INR';
+  let grandTotal = 0;
+  const rows = fareRowsBody.querySelectorAll('tr');
+  lastParsed.flights.forEach((f, i) => {
+    const baseFare = Number(f.editedFare !== undefined ? f.editedFare : f.fare) || 0;
+    const final = applyMarkup(baseFare);
+    grandTotal += final;
+    const cell = rows[i].querySelector('.final-fare');
+    if (cell) cell.textContent = fmtMoney(final, f.currency || currency);
+  });
+  workspaceGrandTotal.textContent = 'Grand total (with markup): ' + fmtMoney(grandTotal, currency);
+}
+
+document.getElementById('markup-value').addEventListener('input', updateFareTotals);
+
+function buildEmail() {
+  if (!lastParsed) return;
+  const p = lastParsed;
+  const recipientType = document.getElementById('recipient-type').value;
+  const greeting = recipientType === 'agent' ? 'Partner' : 'Team';
+
+  let grandTotal = 0;
+  const currency = (p.flights[0] && p.flights[0].currency) || 'INR';
+
+  const rows = p.flights.map(f => {
+    const baseFare = Number(f.editedFare !== undefined ? f.editedFare : f.fare) || 0;
+    const final = applyMarkup(baseFare);
+    grandTotal += final;
+    return '<tr>' +
+      '<td>' + (f.route || '—') + '</td>' +
+      '<td>' + (f.date || '—') + '</td>' +
+      '<td>' + [f.airline, f.flightNumber].filter(Boolean).join(' ') + '</td>' +
+      '<td>' + (f.departure || '—') + '</td>' +
+      '<td>' + (f.arrival || '—') + '</td>' +
+      '<td>' + (f.duration || '—') + '</td>' +
+      '<td>' + (f.fareType || '—') + '</td>' +
+      '<td>' + (f.baggage || '—') + '</td>' +
+      '<td>' + fmtPax(f.passengers) + '</td>' +
+      '<td>' + fmtMoney(final, f.currency || currency) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  const table = '<table><thead><tr>' +
+    '<th>Route</th><th>Date</th><th>Flight</th><th>Departure</th><th>Arrival</th><th>Duration</th><th>Fare type</th><th>Baggage</th><th>Passengers</th><th>Total fare</th>' +
+    '</tr></thead><tbody>' + rows +
+    '<tr class="grand-total"><td colspan="9" style="text-align:right;">Grand total</td><td>' + fmtMoney(grandTotal, currency) + '</td></tr>' +
+    '</tbody></table>';
+
+  const html =
+    '<p style="color: var(--slate); font-size: 12.5px; margin: 0 0 16px;">Subject: ' + (p.emailSubject || 'Flight quote') + '</p>' +
+    '<p>Dear ' + greeting + ',</p>' +
+    '<p>' + (p.openingLine || 'Thank you for reaching out. Please find the flight quote requested below, put together based on the latest availability.') + '</p>' +
+    table +
+    (p.highlightsLine ? '<p>' + p.highlightsLine + '</p>' : '') +
+    (p.validity ? '<p><strong>Please note:</strong> this quote is valid until ' + p.validity + ', subject to availability at the time of confirmation.</p>' : '') +
+    '<p>' + (p.closingLine || 'Do let us know if you would like to proceed with this booking, or if you need any changes to the routing, dates, or passenger details. Happy to assist further.') + '</p>' +
+    '<p>Looking forward to your confirmation.</p>' +
+    '<p>Best regards,</p>';
+
+  emailPreview.innerHTML = html;
+  outputWrap.style.display = 'block';
+  outputWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+document.getElementById('recipient-type').addEventListener('change', () => { if (outputWrap.style.display === 'block') buildEmail(); });
+buildEmailBtn.addEventListener('click', buildEmail);
+
+async function generate() {
+  const raw = document.getElementById('raw-input').value.trim();
+  if (!raw) { setStatus('Paste a quote first.', 'info'); return; }
+
+  const recipientType = document.getElementById('recipient-type').value;
+
+  genBtn.disabled = true;
+  genBtn.textContent = 'Extracting…';
+  setStatus('Reading the quote and pulling out the flights…', 'info');
+  fareWorkspace.style.display = 'none';
+  outputWrap.style.display = 'none';
+
+  const systemPrompt = 'You extract flight quote details from messy pasted text or a pasted table (from an airline or travel supplier portal such as TravClan) that may contain ONE OR MORE flight legs/options, and draft the surrounding copy for a professional quote email. Respond ONLY with a single valid JSON object, no markdown fences, no text outside the JSON. JSON shape: {"flights": [{"route": string, "date": string, "airline": string, "flightNumber": string, "departure": string, "arrival": string, "duration": string, "fareType": string, "baggage": string, "passengers": string, "fare": number, "currency": string}], "validity": string or null, "openingLine": string, "highlightsLine": string or null, "closingLine": string, "emailSubject": string}. Extract EVERY flight row present in the input as a separate entry in "flights" - do not merge or drop rows. "fare" must be a plain number (no currency symbols or commas) representing the total fare for that row. currency is a 3-letter code (default INR if amounts use the rupee symbol). openingLine: one short, general sentence introducing the quote (e.g. thanking them and noting the quote is based on current availability) - do NOT restate the routes, number of legs, dates, or passenger counts, since those already appear in the table below it. highlightsLine: one sentence calling out something worth flagging that is NOT already an explicit column in the table, such as a booking or fare-rule nuance - only include if genuinely useful, otherwise use null; never just restate table data. closingLine: two short sentences inviting the recipient to confirm the booking or ask questions, and noting that fares can change until confirmed. emailSubject: short and specific, including route and total passengers. Do not fabricate data not present in the input; use null or empty string for genuinely missing fields.';
+
+  const audienceLine = recipientType === 'agent'
+    ? 'Audience: external travel agent partner. Tone: professional, courteous, slightly formal.'
+    : 'Audience: internal team/company. Tone: professional but brief, colleague to colleague.';
+
+  const userPrompt = audienceLine + ' Raw pasted quote follows, between triple dashes:\n---\n' + raw + '\n---';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error('API error ' + response.status + ': ' + errText.slice(0, 300));
+    }
+
+    const data = await response.json();
+    if (data.error) throw new Error('API error: ' + (data.error.message || JSON.stringify(data.error)));
+
+    const text = (data.content || []).map(b => b.text || '').join('').trim();
+    if (!text) throw new Error('Empty response from model.');
+
+    const parsed = extractJson(text);
+    if (!parsed.flights || !parsed.flights.length) throw new Error('No flight rows could be extracted from the pasted text.');
+
+    lastParsed = parsed;
+    renderFareWorkspace();
+
+    fareWorkspace.style.display = 'block';
+    fareWorkspace.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setStatus('Flights extracted. Check the fares below, then build the email.', 'success');
+  } catch (err) {
+    setStatus('Could not extract the quote.\n' + (err && err.message ? err.message : String(err)), 'error');
+  } finally {
+    genBtn.disabled = false;
+    genBtn.textContent = 'Extract flights';
+  }
+}
+
+genBtn.addEventListener('click', generate);
+
+async function copyRichEmail() {
+  const htmlContent = emailPreview.innerHTML;
+  const plainText = emailPreview.innerText;
+  try {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+      const textBlob = new Blob([plainText], { type: 'text/plain' });
+      const item = new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob });
+      await navigator.clipboard.write([item]);
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(plainText);
+    } else {
+      const range = document.createRange();
+      range.selectNode(emailPreview);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      document.execCommand('copy');
+      window.getSelection().removeAllRanges();
+    }
+    const original = copyBtn.textContent;
+    copyBtn.textContent = 'Copied — paste into your email';
+    setTimeout(() => { copyBtn.textContent = original; }, 2000);
+  } catch (err) {
+    setStatus('Could not copy automatically. Select the preview text above and copy manually (Ctrl/Cmd + C).', 'error');
+  }
+}
+
+copyBtn.addEventListener('click', copyRichEmail);
+</script>
+</body>
+</html>
